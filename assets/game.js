@@ -99,9 +99,22 @@ for(let i=0;i<dust.length;i++){let p=dust[i],xx=p.x-cam;if(xx<0||xx>viewW)contin
 ctx.strokeStyle='#c4d2d425';ctx.lineWidth=1;for(let i=0;i<rain.length;i++){let p=rain[i],xx=((p.x-cam*.65+2000)%2000+2000)%2000,yy=(p.y+ambientTime*p.s)%800;if(xx<viewW)line(xx,yy,xx-5,yy+p.length,'#d5e0de29',.9)}let fog=ctx.createLinearGradient(0,410,0,675);fog.addColorStop(0,'#a4b6a400');fog.addColorStop(.7,'#9badaa0b');fog.addColorStop(1,'#111b1a29');fill(0,400,viewW,300,fog);}
 function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.save();let scale=h/HEIGHT;ctx.scale(scale,scale);let shake=cameraShake?(r(frame*3)-.5)*cameraShake:0;ctx.translate(shake,0);if(!threeReady){sky();let sourceLeft=Math.max(0,Math.min(WORLD-1,cam));let sourceW=Math.min(WORLD-sourceLeft,viewW);if(sourceW>0)ctx.drawImage(environment,sourceLeft,0,sourceW,HEIGHT,0,0,sourceW,HEIGHT);}
 ctx.save();ctx.translate(-cam,0);for(const loot of loots)glowLoot(loot);for(let i=0;i<enemies.length;i++)char(enemies[i].x,GROUND,true,enemies[i]);char(player.x,GROUND,false);for(const b of bullets){let alpha=b.life/.17;ctx.strokeStyle=`rgba(251,204,130,${alpha*.7})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.face*370,b.y);ctx.stroke()}for(const f of fx){ctx.globalAlpha=Math.max(0,f.life);fill(f.x,f.y,f.size,f.size,f.col)}ctx.globalAlpha=1;ctx.restore();drawAtmosphere();if(player.hurtTimer>0){fill(0,0,viewW,HEIGHT,`rgba(125,19,18,${player.hurtTimer*.17})`)}ctx.restore()}
-function showError(err){window.__gameReady=false;paused=true;overlay.hidden=false;startBtn.disabled=true;startBtn.textContent='初始化失败，请刷新';document.querySelector('#loadStatus').textContent='游戏错误：'+(err?.message||err);console.error(err);}
-function markReady(){window.__gameReady=true;lifecycle.setState('Ready');startBtn.disabled=false;startBtn.textContent='开始探索';document.querySelector('#loadStatus').textContent='场景、角色与物资已就绪';}
-lifecycle.setState('Loading');
-// Let the loading UI paint, then prepare all essential resources before Ready.
-requestAnimationFrame(()=>{try{if(!ctx||!ec)throw new Error('浏览器不支持 Canvas 2D');resize();reset();cacheEnv();draw();markReady();}catch(err){lifecycle.setState('Error');showError(err);}});
+const loadStatus=document.querySelector('#loadStatus'),loadBar=document.querySelector('#loadingProgress'),loadFill=document.querySelector('#loadingProgressFill'),loadPercent=document.querySelector('#loadingPercent');
+function setLoadProgress(percent,message){const value=Math.max(0,Math.min(100,Math.round(percent)));loadStatus.textContent=message;loadBar.setAttribute('aria-valuenow',String(value));loadFill.style.width=value+'%';loadPercent.textContent=value+'%';}
+function showError(err){window.__gameReady=false;paused=true;overlay.hidden=false;startBtn.disabled=true;startBtn.textContent='初始化失败，请刷新';setLoadProgress(0,'游戏错误：'+(err?.message||err));console.error(err);}
+function markReady(){window.__gameReady=true;lifecycle.setState('Ready');setLoadProgress(100,'场景、角色与物资已就绪');startBtn.disabled=false;startBtn.textContent='开始探索';}
+const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+async function initializeGame(){
+  lifecycle.setState('Loading');window.__gameReady=false;startBtn.disabled=true;
+  try{
+    setLoadProgress(5,'正在检查浏览器渲染支持…');await nextPaint();
+    if(!ctx||!ec)throw new Error('浏览器不支持 Canvas 2D');
+    setLoadProgress(20,'正在配置画面尺寸…');await nextPaint();resize();
+    setLoadProgress(40,'正在生成角色、敌人和物资…');await nextPaint();reset();
+    setLoadProgress(65,'正在绘制建筑和环境资源…');await nextPaint();cacheEnv();
+    setLoadProgress(90,'正在渲染首帧画面…');await nextPaint();draw();
+    markReady();
+  }catch(err){lifecycle.setState('Error');showError(err);}
+}
+initializeGame();
 })();
