@@ -204,7 +204,7 @@ function drawAtmosphere(){
  ctx.restore();
 }
 function draw(){if(scene==='Shelter'){drawShelter();return;}beginCharacters(cam,viewW);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.save();let scale=h/HEIGHT;ctx.scale(scale,scale);let shake=cameraShake?(r(frame*3)-.5)*cameraShake:0;ctx.translate(shake,0);{if(!window.EmberScene?.ready)sky();let sourceLeft=Math.max(0,Math.min(WORLD-1,cam));let sourceW=Math.min(WORLD-sourceLeft,viewW);if(sourceW>0)ctx.drawImage(environment,sourceLeft,0,sourceW,HEIGHT,0,0,sourceW,HEIGHT);}
-ctx.save();ctx.translate(-cam,0);for(const loot of loots)glowLoot(loot);for(let i=0;i<enemies.length;i++){if(enemies[i].x>cam-180&&enemies[i].x<cam+viewW+180)char(enemies[i].x,GROUND,true,enemies[i]);}char(player.x,GROUND,false);flushCharacters();for(const b of bullets){if(b.originPending){const muzzle=window.Ember3DCharacters?.muzzlePosition?.();if(muzzle){b.x=muzzle.x;b.y=muzzle.y;}b.originPending=false;}let alpha=b.life/.17;ctx.strokeStyle=`rgba(251,204,130,${alpha*.7})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.face*370,b.y);ctx.stroke()}for(const f of fx){ctx.globalAlpha=Math.max(0,f.life);fill(f.x,f.y,f.size,f.size,f.col)}ctx.globalAlpha=1;ctx.restore();drawAtmosphere();if(player.hurtTimer>0){fill(0,0,viewW,HEIGHT,`rgba(125,19,18,${player.hurtTimer*.17})`)}ctx.restore()}
+ctx.save();ctx.translate(-cam,0);for(const loot of loots)glowLoot(loot);for(let i=0;i<enemies.length;i++){if(enemies[i].x>cam-180&&enemies[i].x<cam+viewW+180)char(enemies[i].x,GROUND,true,enemies[i]);}char(player.x,GROUND,false);flushCharacters();for(const b of bullets){if(b.originPending){const muzzle=window.Ember3DCharacters?.muzzlePosition?.();if(muzzle){b.x=muzzle.x;b.y=muzzle.y;}b.originPending=false;}let alpha=b.life/.17;ctx.strokeStyle=`rgba(251,204,130,${alpha*.7})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.face*370,b.y);ctx.stroke()}for(const f of fx){ctx.globalAlpha=Math.max(0,f.life);fill(f.x,f.y,f.size,f.size,f.col)}ctx.globalAlpha=1;ctx.restore();drawAtmosphere();window.EmberScene?.exteriorLighting?.(ctx,cam,viewW,ambientTime);if(player.hurtTimer>0){fill(0,0,viewW,HEIGHT,`rgba(125,19,18,${player.hurtTimer*.17})`)}ctx.restore()}
 let shelterFallback=null;
 function paintShelterFallback(){
  if(!shelterFallback){
@@ -247,7 +247,7 @@ function drawShelter(){
  ctx.translate(centerOffset-cameraPan*sc,0);ctx.scale(sc,sc);
  if(!window.EmberScene?.paintShelter?.(ctx,1280,720))paintShelterFallback();
  // Time-of-day tint leaves the local warm practical lights readable.
- fill(0,0,1280,720,`rgba(8,18,25,${Math.max(0,(dayMinutes-720)/360)*.14})`);
+ fill(0,0,1280,720,`rgba(8,18,25,${Math.max(0,(dayMinutes-720)/360)*.14})`);window.EmberScene?.shelterLighting?.(ctx,dayMinutes,workbenchBuilt,bedRepaired);
  beginCharacters(cameraPan,visibleWidth);char(shelterX,GROUND,false);flushCharacters();
  ctx.font='11px -apple-system,BlinkMacSystemFont,sans-serif';ctx.textAlign='center';
  for(const [x,label] of [[270,'储物柜'],[500,workbenchBuilt?'工作台 · 已修复':'工作台'],[1010,'外出地图']]){
