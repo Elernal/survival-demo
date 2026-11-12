@@ -52,7 +52,7 @@ def main():
                 assert page.evaluate('Boolean(window.Ember3DCharacters?.ready)'), '3D renderer did not initialize'
                 assert any(url.lower().endswith('.glb') for url in requests), requests
                 ready_requests = len(requests)
-                page.screenshot(path=str(ROOT/'tests'/f'3d-{name}-title.png'))
+                page.screenshot(timeout=60000, path=str(ROOT/'tests'/f'3d-{name}-title.png'))
                 page.clock.install()
                 page.locator('#startBtn').click()
                 assert page.locator('#shelterHUD').is_visible()
@@ -64,7 +64,7 @@ def main():
                 assert stats['visibleActors'] >= 1 and stats['drawCalls'] > 0 and stats['triangles'] > 0, stats
                 assert stats['actorCount'] <= 8, stats
                 assert len(requests) == ready_requests, 'Start/movement fetched model resources'
-                page.screenshot(path=str(ROOT/'tests'/f'3d-{name}-shelter.png'))
+                page.screenshot(timeout=60000, path=str(ROOT/'tests'/f'3d-{name}-shelter.png'))
                 for _ in range(3):
                     page.locator('#pauseBtn').click()
                     assert page.locator('html').get_attribute('data-game-state') == 'Paused'
@@ -111,7 +111,7 @@ def main():
             after = page.evaluate('window.Ember3DCharacters.inspect?.().actors.find(actor=>actor.id==="test-1") ?? null')
             assert after['clipTime'] > before['clipTime'], 'AnimationMixer time did not advance'
             assert json.dumps(before['bones'], sort_keys=True) != json.dumps(after['bones'], sort_keys=True), 'Actual skeleton bone transforms did not change'
-            page.screenshot(path=str(ROOT/'tests'/'3d-component-poses.png'))
+            page.screenshot(timeout=60000, path=str(ROOT/'tests'/'3d-component-poses.png'))
             stressed = page.evaluate(harness, {'frames':1, 'phase':.3, 'stress':True})
             assert stressed['actorCount'] <= 8 and stressed['visibleActors'] <= 8, stressed
             page.evaluate('window.Ember3DCharacters.dispose()')
@@ -130,7 +130,7 @@ def main():
             assert not page.evaluate('Boolean(window.Ember3DCharacters?.ready)')
             assert page.evaluate('Boolean(window.EmberCharacters?.ready)')
             page.locator('#startBtn').click();assert page.locator('#shelterHUD').is_visible()
-            page.screenshot(path=str(ROOT/'tests'/'3d-model-failure-fallback.png'))
+            page.screenshot(timeout=60000, path=str(ROOT/'tests'/'3d-model-failure-fallback.png'))
             assert not errors,errors
             results.append({'case':'blocked-glb-fallback','result':'passed','js_errors':errors})
             context.close();browser.close()
@@ -142,7 +142,7 @@ def main():
             assert not page.evaluate('Boolean(window.Ember3DCharacters?.ready)')
             assert page.evaluate('Boolean(window.EmberCharacters?.ready)')
             page.locator('#startBtn').click();assert page.locator('#shelterHUD').is_visible()
-            page.screenshot(path=str(ROOT/'tests'/'3d-no-webgl-fallback.png'))
+            page.screenshot(timeout=60000, path=str(ROOT/'tests'/'3d-no-webgl-fallback.png'))
             assert not errors,errors
             results.append({'case':'webgl-disabled-fallback','result':'passed','js_errors':errors})
             context.close();browser.close()

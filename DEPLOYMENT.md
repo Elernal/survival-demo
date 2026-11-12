@@ -16,7 +16,7 @@ git push origin main
 ```
 
 等待 Pages deployment 构建完成，然后实际打开公开地址验证版本。
-本次 3D 人物迭代 HTML 含 `<meta name="build" content="3d-01">`，脚本与 CSS 带版本参数以降低旧缓存影响。
+本次 3D 人物迭代 HTML 含 `<meta name="build" content="3d-02">`，脚本与 CSS 带版本参数以降低旧缓存影响。
 
 ## 不使用 Git 的上传方法
 

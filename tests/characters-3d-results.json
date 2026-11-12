@@ -7,8 +7,8 @@
       "stats": {
         "enabled": true,
         "visibleActors": 1,
-        "drawCalls": 18,
-        "triangles": 91306,
+        "drawCalls": 17,
+        "triangles": 92318,
         "frames": 44,
         "actorCount": 1,
         "reason": ""
@@ -22,9 +22,9 @@
       "stats": {
         "enabled": true,
         "visibleActors": 1,
-        "drawCalls": 18,
-        "triangles": 91306,
-        "frames": 42,
+        "drawCalls": 17,
+        "triangles": 92318,
+        "frames": 43,
         "actorCount": 1,
         "reason": ""
       },
@@ -37,9 +37,9 @@
       "stats": {
         "enabled": true,
         "visibleActors": 1,
-        "drawCalls": 18,
-        "triangles": 91306,
-        "frames": 41,
+        "drawCalls": 17,
+        "triangles": 92318,
+        "frames": 44,
         "actorCount": 1,
         "reason": ""
       },
@@ -52,8 +52,8 @@
       "initial_stats": {
         "enabled": true,
         "visibleActors": 8,
-        "drawCalls": 132,
-        "triangles": 730304,
+        "drawCalls": 126,
+        "triangles": 736376,
         "frames": 1,
         "actorCount": 8,
         "reason": ""
@@ -61,8 +61,8 @@
       "stressed_stats": {
         "enabled": true,
         "visibleActors": 8,
-        "drawCalls": 132,
-        "triangles": 730304,
+        "drawCalls": 126,
+        "triangles": 736376,
         "frames": 21,
         "actorCount": 8,
         "reason": ""

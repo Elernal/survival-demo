@@ -1,0 +1,45 @@
+{
+  "scope": "headless Chromium / SwiftShader, not mobile hardware",
+  "results": [
+    {
+      "case": "smooth-stop-crouch-turn",
+      "result": "passed",
+      "first": {
+        "move": 0.8186297136761447,
+        "crouch": 0.20811043366321835,
+        "aim": 0,
+        "melee": 0,
+        "death": 0
+      },
+      "settled": {
+        "move": 0.0002746196750288798,
+        "crouch": 0.9999299755902977,
+        "aim": 0,
+        "melee": 0,
+        "death": 0
+      },
+      "max_leg_step_radians": 0.19662943313936534
+    },
+    {
+      "case": "crouch-pack-grounding-two-hand-aim",
+      "result": "passed",
+      "chest_drop": 34.995999999999995,
+      "pack_drop": 34.995999999999995,
+      "crouch_ground": {
+        "pixelsBelowMargin": 0,
+        "maxPenetrationPixels": 0
+      },
+      "aim_hand_distance": 10.295630140987
+    },
+    {
+      "case": "corpse-melee-finite-bones-and-release",
+      "result": "passed",
+      "corpse_ground": {
+        "pixelsBelowMargin": 0,
+        "maxPenetrationPixels": 0
+      },
+      "melee_gear": "knife",
+      "js_errors": []
+    }
+  ]
+}
