@@ -1,38 +1,29 @@
 # 部署交接
 
-## 当前状态
+- GitHub：Elernal/survival-demo，Public，main。
+- 静态入口：根目录 index.html；资源目录 assets/；不需要服务端或 npm 构建。
+- GitHub Pages 已启用：main → /(root)。地址 https://elernal.github.io/survival-demo/ 。
+- 早期 API 和 Git 推送曾返回 403；之后 Git 写入已恢复。无需为此重复调整插件身份授权。
 
-- GitHub 目标仓库：Elernal/survival-demo，main，Public，当前为空。
-- Contents API 实际写入：403 Resource not accessible by integration。
-- Git HTTPS 实际推送：403 Permission denied。
-- GitHub Pages API：404；公开地址 https://elernal.github.io/survival-demo/ ：404。
-- 以上是当前集成的实际写入限制，仓库元数据中的 push/admin=true 不代表调用可成功。
-
-## 最短上传方法
-
-1. 解压完整项目包。
-2. 在仓库网页点击 Add file → Upload files，将 index.html、assets 文件夹、README.md 等拖入；确认 assets 下有三个 JS 文件和一个 CSS 文件。
-3. Commit changes 到 main。
-4. Settings → Pages → Source: Deploy from a branch；Branch: main；Folder: /(root)；Save。
-5. 等待 Pages 构建完成，再打开 https://elernal.github.io/survival-demo/ ，确认开始按钮显示“开始探索”。
-
-不要只上传模块版 index.html；它需要 assets 文件夹。也可将单文件离线版重命名为 index.html 后单独上传。
-
-## 有仓库写权限的本机命令
+## 更新
 
 ```sh
-git clone https://github.com/Elernal/survival-demo.git
-# 将项目包内容复制到克隆目录（不复制任何 .git）
-cd survival-demo
+python tests/browser_smoke.py
+python tests/visual_qa.py
 git add .
-git commit -m "Fix and deploy playable survival demo"
+git commit -m "Update survival demo"
 git push origin main
 ```
 
-## 测试范围
+等待 Pages deployment 构建完成，然后实际打开公开地址验证版本。
+本次视觉迭代 HTML 含 `<meta name="build" content="art-02">`，脚本与 CSS 带版本参数以降低旧缓存影响。
 
-真实 Chromium 自动化：1280×720 桌面、844×390 手机横屏、390×844 手机竖屏、1024×768 平板。
-桌面完成开始、多次暂停继续、搜刮、射击、换弹、获取医疗箱、返回入口撤离、重试及失焦暂停。
-触屏验证移动、双指移动+射击、touchCancel 后释放；页面未捕获 JS 异常。
-使用虚拟时钟加速模拟，不修改游戏内部状态。
-未完成真实 iOS Safari、Android 或实机性能验收；未验证公开 Pages 上的游戏流程，因为上传受限。
+## 不使用 Git 的上传方法
+
+解压项目包，在 GitHub 的 Add file → Upload files 中上传 index.html 和完整 assets 文件夹。
+不要只上传 index.html；写实场景与人物均依赖随包资源。
+
+## 验证范围
+
+本地真实 Chromium 的 1280×720、844×390、390×844、1024×768 四种视口；完整流程、触屏取消、重试、加载回退见 tests/。
+浏览器模拟不能替代真实移动设备与 iOS Safari 的性能、触感及内存验收。

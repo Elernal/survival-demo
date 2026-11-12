@@ -1,0 +1,43 @@
+[
+  {
+    "viewport": "desktop",
+    "result": "passed",
+    "art_requests_at_ready": 3,
+    "start_ui_action_ms": 142.0,
+    "headless_raf_median_ms": 16.7,
+    "headless_raf_p95_ms": 16.7,
+    "js_errors": []
+  },
+  {
+    "viewport": "phone-landscape",
+    "result": "passed",
+    "art_requests_at_ready": 3,
+    "start_ui_action_ms": 45.6,
+    "headless_raf_median_ms": 16.7,
+    "headless_raf_p95_ms": 16.8,
+    "js_errors": []
+  },
+  {
+    "viewport": "phone-portrait",
+    "result": "passed",
+    "art_requests_at_ready": 3,
+    "start_ui_action_ms": 25.3,
+    "headless_raf_median_ms": 16.7,
+    "headless_raf_p95_ms": 16.8,
+    "js_errors": []
+  },
+  {
+    "viewport": "tablet",
+    "result": "passed",
+    "art_requests_at_ready": 3,
+    "start_ui_action_ms": 41.9,
+    "headless_raf_median_ms": 16.7,
+    "headless_raf_p95_ms": 16.7,
+    "js_errors": []
+  },
+  {
+    "case": "art-routes-blocked",
+    "result": "passed",
+    "js_errors": []
+  }
+]

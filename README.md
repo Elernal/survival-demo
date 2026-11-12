@@ -1,6 +1,8 @@
 # 余烬：最后一趟
 
-浏览器横版生存游戏原型。当前美术是 Canvas 程序化绘制，尚未达到目标商业游戏的视觉品质。
+浏览器横版生存游戏原型。视觉迭代 02：写实建筑剖面、透明人物序列、冷暖照明与电影感 HUD。
+
+试玩：https://elernal.github.io/survival-demo/
 
 ## 本地运行
 
@@ -8,7 +10,7 @@
 python3 -m http.server 8000
 ```
 
-打开 http://localhost:8000 。无 npm 依赖，无需构建，无 CDN 依赖。
+打开 http://localhost:8000 。无 npm 运行依赖、构建步骤或 CDN 请求。美术素材随源码提供。
 
 ## 操作
 
@@ -16,24 +18,44 @@ python3 -m http.server 8000
 触屏：左侧摇杆、右侧动作按钮，建议横屏。支持移动与射击同时进行。
 找到诊室医疗箱后返回左侧入口，交互撤离。
 
+## 美术与渲染
+
+- 原创写实住宅、临时诊室和仓储背景；材质与主要照明为预渲染。
+- 幸存者和感染者使用透明四帧步行序列，搭配程序化武器、蹲伏、倒地和反馈。
+- 动态雨尘、接触阴影、枪口闪光、前景遮挡和轻微视差。
+- 极简任务 HUD、电影感标题与重绘触屏图标。
+- 三张 WebP 合计约 1.28 MB；详见 `assets/art/README.md`。
+
+当前仍是浏览器 2.5D 原型，并非实际 3D、PBR 或完整骨骼动画。动作帧数、光照交互及场景深度仍与参考游戏有明显差距。
+
 ## 初始化与架构
 
 - `index.html`：页面与 UI；`assets/game.css`：布局与触屏样式。
 - `assets/lifecycle.js`：Boot → Loading → Ready → Playing → Paused / GameOver / Completed；单一动画调度器。
 - `assets/input.js`：动作指针捕获、释放与取消。
-- `assets/game.js`：当前场景、AI、战斗、任务与 Canvas 渲染；后续继续拆分这些系统。
+- `assets/scene.js`：场景资源解码、地面标定、拼接与前景。
+- `assets/characters.js`：角色序列渲染、姿态及无图像时的关节绘制回退。
+- `assets/game.js`：场景缓存、AI、战斗、任务与主渲染；后续继续拆分这些系统。
 
-页面先绘制加载状态，然后预先创建角色、敌人、物资与背景缓存；Ready 后才启用开始按钮。
-开始与继续只切换状态；重试仅重置任务数据，不重建背景。失焦、切后台和暂停释放输入。
-稳定版关闭可选 Three.js 路径，避免联网后中途切换渲染器以及独立的后台动画循环。
+页面先显示加载状态，在标题界面准备角色、敌人、物资、图像解码和背景缓存；完成后才启用开始按钮。
+资源失败或 12 秒超时回退基础画面，不阻止试玩。开始和重试不重新加载图像，复用背景缓存；仅渲染视口内的角色。
+暂停或切后台停止帧循环并释放输入。
 
 ## GitHub Pages
 
-仓库根目录含 index.html 和 assets。Settings → Pages → Deploy from a branch → main → /(root) → Save。
-预期地址：https://elernal.github.io/survival-demo/ （部署完成后需单独验证）。
+Settings → Pages → Deploy from a branch → main → /(root) → Save。
+保持 `index.html`、`assets/` 和 `.nojekyll` 在仓库根目录。
 
 ## 自动化测试
 
-环境需 Python Playwright 与 Chromium。运行 `python tests/browser_smoke.py`。
-测试通过真实键盘和 Chromium 触屏事件操作 UI，不修改游戏内部状态。
-测试不能替代真实 iPhone / iPad / Android 设备验收。
+环境需 Python Playwright 与 Chromium：
+
+```sh
+python tests/browser_smoke.py
+python tests/visual_qa.py
+```
+
+测试使用真实 Chromium、正常键盘和触屏事件，不修改内部游戏状态。
+包含四种视口、开始、暂停继续、双指操作、完整任务撤离、重试、预加载、资源失败回退和截图。
+任务使用虚拟时钟加速；帧间隔来自桌面无头 Chromium，不代表手机硬件性能。
+仍需真实 iPhone / iPad / Android 设备验收。
