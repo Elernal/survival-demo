@@ -245,12 +245,12 @@ function drawShelter(){
  const cameraPan=Math.max(0,Math.min(1280-visibleWidth,shelterX-visibleWidth*.4));
  const centerOffset=Math.max(0,(w-1280*sc)/2);
  ctx.translate(centerOffset-cameraPan*sc,0);ctx.scale(sc,sc);
- if(!window.EmberScene?.paintShelter?.(ctx,1280,720))paintShelterFallback();
+ if(window.EmberShelterBuilding)window.EmberShelterBuilding.draw(ctx);else paintShelterFallback();
  // Time-of-day tint leaves the local warm practical lights readable.
  fill(0,0,1280,720,`rgba(8,18,25,${Math.max(0,(dayMinutes-720)/360)*.14})`);window.EmberScene?.shelterLighting?.(ctx,dayMinutes,workbenchBuilt,bedRepaired);
  beginCharacters(cameraPan,visibleWidth);char(shelterX,GROUND,false);flushCharacters();
  ctx.font='11px -apple-system,BlinkMacSystemFont,sans-serif';ctx.textAlign='center';
- for(const [x,label] of [[270,'储物柜'],[500,workbenchBuilt?'工作台 · 已修复':'工作台'],[1010,'外出地图']]){
+ for(const [x,label] of [[270,'预留 · 仓储区'],[500,'预留 · 工作区'],[1010,'外出入口']]){
   const near=Math.abs(shelterX-x)<115;ctx.fillStyle=near?'#ead9b6':'#babaa47a';ctx.fillText(near?'◇ '+label+' / F':label,x,634);
  }
  ctx.restore();
