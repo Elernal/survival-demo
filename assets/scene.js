@@ -10,6 +10,53 @@ window.EmberScene = (() => {
   let ready=false;
   let loaded=[];
   let shelterSurface=null;
+
+  // Procedural material breakup and practical lighting; deterministic and cached.
+  let patina=null;
+  function buildPatina(){
+    const c=document.createElement('canvas');c.width=256;c.height=256;
+    const g=c.getContext('2d'),data=g.createImageData(256,256);
+    let seed=381729;for(let i=0;i<data.data.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)|0;const v=(seed>>>24);data.data[i]=176;data.data[i+1]=164;data.data[i+2]=143;data.data[i+3]=v>228?17:v>180?8:0;}
+    g.putImageData(data,0,0);patina=c;
+  }
+  function light(ctx,x,y,r,color,alpha=1){
+    const g=ctx.createRadialGradient(x,y,2,x,y,r);
+    g.addColorStop(0,color.replace('ALPHA',String(.35*alpha)));
+    g.addColorStop(.22,color.replace('ALPHA',String(.18*alpha)));
+    g.addColorStop(1,color.replace('ALPHA','0'));
+    ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
+  }
+  function shelterLighting(ctx,time,workbench,bed){
+    const evening=Math.max(0,Math.min(1,(time-900)/180));
+    ctx.save();
+    // Exterior light entering broken windows, reduced as dusk falls.
+    ctx.globalCompositeOperation='screen';
+    for(const x of [250,900]){
+      const g=ctx.createLinearGradient(x-125,140,x+190,560);
+      g.addColorStop(0,`rgba(159,191,185,${.13*(1-evening*.75)})`);
+      g.addColorStop(1,'rgba(111,146,145,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x-75,180);ctx.lineTo(x+95,180);ctx.lineTo(x+350,575);ctx.lineTo(x-130,575);ctx.closePath();ctx.fill();
+    }
+    const flicker=1+Math.sin(performance.now()*.0037)*.025;
+    light(ctx,715,272,260,'rgba(242,184,103,ALPHA)',flicker);
+    light(ctx,1010,431,185,'rgba(255,193,110,ALPHA)',.55*flicker);
+    if(workbench)light(ctx,505,485,145,'rgba(244,211,155,ALPHA)',.55);
+    if(bed)light(ctx,465,260,120,'rgba(238,174,114,ALPHA)',.25);
+    ctx.globalCompositeOperation='source-over';
+    const vignette=ctx.createRadialGradient(640,345,170,640,350,790);
+    vignette.addColorStop(0,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(0,0,0,.47)');
+    ctx.fillStyle=vignette;ctx.fillRect(0,0,1280,720);
+    ctx.restore();
+  }
+  function exteriorLighting(ctx,cam,viewWidth,time){
+    ctx.save();ctx.globalCompositeOperation='screen';
+    for(const [x,y,r] of [[690,235,220],[1470,285,185],[2190,265,235],[2880,215,190]]){
+      const sx=x-cam;if(sx<-r||sx>viewWidth+r)continue;
+      light(ctx,sx,y,r,'rgba(234,183,111,ALPHA)',.36+Math.sin(time*1.7+x)*.025);
+    }
+    ctx.restore();
+  }
+
   const load = async (progress) => {
     let complete=0;
     loaded=await Promise.all(assets.map(asset=>new Promise(resolve=>{
@@ -22,6 +69,7 @@ window.EmberScene = (() => {
       image.src=asset.src;
     })));
     ready=Boolean(loaded[0]&&loaded[1]);
+    if(!patina)buildPatina();
     if(loaded[2]){
       shelterSurface=document.createElement('canvas');shelterSurface.width=1280;shelterSurface.height=720;
       const c=shelterSurface.getContext('2d');
@@ -45,6 +93,7 @@ window.EmberScene = (() => {
     let floor=ctx.createLinearGradient(0,ground+3,0,height);
     floor.addColorStop(0,'#10110e00');floor.addColorStop(.24,'#0b0e0d80');floor.addColorStop(1,'#030505f0');
     ctx.fillStyle=floor;ctx.fillRect(0,ground,width,height-ground);
+    if(patina){ctx.save();ctx.globalAlpha=.33;ctx.fillStyle=ctx.createPattern(patina,'repeat');ctx.fillRect(0,0,width,height);ctx.restore();}
     ctx.restore();return true;
   }
   function foreground(ctx,cam,viewWidth,time){
@@ -63,5 +112,5 @@ window.EmberScene = (() => {
     if(!shelterSurface)return false;
     ctx.drawImage(shelterSurface,0,0,width,height);return true;
   }
-  return {load,paint,paintShelter,foreground,get ready(){return ready},get shelterReady(){return Boolean(shelterSurface)}};
+  return {load,paint,paintShelter,foreground,shelterLighting,exteriorLighting,get ready(){return ready},get shelterReady(){return Boolean(shelterSurface)}};
 })();
