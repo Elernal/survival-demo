@@ -49,6 +49,7 @@ with sync_playwright() as p:
    page.clock.run_for(800)
    cdp.send('Input.dispatchTouchEvent',{'type':'touchCancel','touchPoints':[]})
    assert page.locator('#ammoText').inner_text()!='06 / 18'
+   assert '废弃住宅' in page.locator('#zoneName').inner_text()
    assert page.locator('#knob').evaluate('(e)=>e.style.transform')=='translate(0px, 0px)'
    assert page.locator('.pressed').count()==0
   page.screenshot(path=str(root/'tests'/f'{name}.png'))
