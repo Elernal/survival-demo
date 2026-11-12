@@ -1,0 +1,91 @@
+{
+  "gpu_scope": "headless Chromium with SwiftShader; not real mobile hardware",
+  "results": [
+    {
+      "viewport": "desktop",
+      "result": "passed",
+      "stats": {
+        "enabled": true,
+        "visibleActors": 1,
+        "drawCalls": 18,
+        "triangles": 91306,
+        "frames": 44,
+        "actorCount": 1,
+        "reason": ""
+      },
+      "model_requests_at_ready": 6,
+      "js_errors": []
+    },
+    {
+      "viewport": "phone",
+      "result": "passed",
+      "stats": {
+        "enabled": true,
+        "visibleActors": 1,
+        "drawCalls": 18,
+        "triangles": 91306,
+        "frames": 42,
+        "actorCount": 1,
+        "reason": ""
+      },
+      "model_requests_at_ready": 6,
+      "js_errors": []
+    },
+    {
+      "viewport": "tablet",
+      "result": "passed",
+      "stats": {
+        "enabled": true,
+        "visibleActors": 1,
+        "drawCalls": 18,
+        "triangles": 91306,
+        "frames": 41,
+        "actorCount": 1,
+        "reason": ""
+      },
+      "model_requests_at_ready": 6,
+      "js_errors": []
+    },
+    {
+      "case": "real-skeletal-component-poses-and-bounded-pool",
+      "result": "passed",
+      "initial_stats": {
+        "enabled": true,
+        "visibleActors": 8,
+        "drawCalls": 132,
+        "triangles": 730304,
+        "frames": 1,
+        "actorCount": 8,
+        "reason": ""
+      },
+      "stressed_stats": {
+        "enabled": true,
+        "visibleActors": 8,
+        "drawCalls": 132,
+        "triangles": 730304,
+        "frames": 21,
+        "actorCount": 8,
+        "reason": ""
+      },
+      "disposed_stats": {
+        "enabled": false,
+        "visibleActors": 0,
+        "drawCalls": 0,
+        "triangles": 0,
+        "frames": 21,
+        "actorCount": 0,
+        "reason": "disposed"
+      }
+    },
+    {
+      "case": "blocked-glb-fallback",
+      "result": "passed",
+      "js_errors": []
+    },
+    {
+      "case": "webgl-disabled-fallback",
+      "result": "passed",
+      "js_errors": []
+    }
+  ]
+}

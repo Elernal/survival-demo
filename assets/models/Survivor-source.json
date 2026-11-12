@@ -1,0 +1,19 @@
+{
+  "title": "Brisk walk - Sam 3D Person, Animated",
+  "creator": "Innerscene, adapted from MakeHuman CC0 assets",
+  "source_url": "https://www.innerscene.com/tools/library/3d-parts/brisk-walk-sam-3d-person-animated-bed03fa4",
+  "download_url": "https://www.innerscene.com/api/library/brisk-walk-sam-3d-person-animated-bed03fa4/download",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "embedded_copyright": "Authored by Innerscene Corp (innerscene.com). Public domain: dedicated under CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/. Free to use, modify and redistribute for any purpose, with no credit required.",
+  "source_bytes": 21013464,
+  "source_sha256": "29a37a17e965bcb0d8b5c195650fc9aa1fca7bfe532e53c63bd9462b4a88f239",
+  "derived_file": "Survivor.glb",
+  "derived_bytes": 5650620,
+  "derived_sha256": "dcb6a91e8e38f988f617e6f0ef7a936ebc9f3ea86ba9be18a993996dd24569e6",
+  "modifications": "Embedded textures resized to <=512px, body color <=1024px, and recompressed; geometry/skin/rig/animation binary payloads unchanged.",
+  "triangles": 91610,
+  "animation_clips": [
+    "Walk_Brisk"
+  ]
+}

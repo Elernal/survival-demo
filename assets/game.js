@@ -91,13 +91,14 @@ function interact(){if(!started||paused||!shelterMap.hidden)return;
 function reload(){if(!started||paused||scene!=='Explore'||!shelterMap.hidden)return;let n=Math.min(6-player.ammo,player.reserve);if(n<=0){toast(player.reserve?'弹匣已满':'没有备用弹药',1.3);return}player.ammo+=n;player.reserve-=n;sound(480,.08,'square',.04,-170);toast('换弹完成',1.2)}
 function heal(){if(!started||paused||scene!=='Explore'||!shelterMap.hidden)return;if(player.meds<=0){toast('没有医疗物资',1.5);return}if(player.hp>=99){toast('不需要治疗',1.3);return}player.meds--;player.hp=Math.min(100,player.hp+45);sound(700,.24,'sine',.08,260);toast('使用绷带，生命恢复',2)}
 function particles(x,y,n,color){for(let i=0;i<n;i++)fx.push({x,y,vx:(r(i*9+frame)-.5)*270,vy:-r(i*3+frame)*190,life:.3+r(i+frame)*.5,col:color,size:1+r(i*6+frame)*3});}
-function attack(gun){if(!started||paused||scene!=='Explore'||!shelterMap.hidden)return;if(gun){if(player.shootTimer>0)return;if(player.ammo<=0){sound(340,.05,'square',.04);toast('弹匣已空，按换弹',1.2);return}player.ammo--;player.shootTimer=.34;player.attackTimer=.18;player.noise=1.7;cameraShake=7;bullets.push({x:player.x+player.face*23,y:GROUND-90,life:.17,face:player.face});sound(170,.11,'sawtooth',.18,-130);sound(86,.2,'triangle',.12,-50);enemies.forEach(e=>{if(!e.dead&&Math.abs(e.x-player.x)<670)e.alert=true});}else{if(player.attackTimer>0||player.stamina<12)return;player.stamina-=17;player.attackTimer=.52;player.noise=Math.max(player.noise,.14);sound(190,.09,'triangle',.04,-100)}let range=gun?610:96;let options=enemies.filter(e=>!e.dead&&(e.x-player.x)*player.face>-16&&Math.abs(e.x-player.x)<range).sort((a,b)=>Math.abs(a.x-player.x)-Math.abs(b.x-player.x));let e=options[0];if(!e){if(gun)toast('射击落空',.85);return;}let stealthStrike=!gun&&!e.alert&&((player.x-e.x)*e.face<0)&&Math.abs(e.x-player.x)<85;e.hp-=gun?2:stealthStrike?3:1;e.hitFlash=.18;e.alert=true;e.face=Math.sign(player.x-e.x)||e.face;particles(e.x,GROUND-100,gun?11:6,'#945047');sound(70,.12,'sawtooth',.07,-35);if(e.hp<=0){e.dead=true;e.deathTime=0;toast(stealthStrike?'无声处决 · 感染者倒下':'感染者倒下',1.1)}else if(!gun)toast('近战命中',.85)}
+function attack(gun){if(!started||paused||scene!=='Explore'||!shelterMap.hidden)return;if(gun){if(player.shootTimer>0)return;if(player.ammo<=0){sound(340,.05,'square',.04);toast('弹匣已空，按换弹',1.2);return}player.ammo--;player.shootTimer=.34;player.attackTimer=.18;player.noise=1.7;cameraShake=7;bullets.push({x:player.x+player.face*(window.Ember3DCharacters?.ready?61:23),y:GROUND-(window.Ember3DCharacters?.ready?105:90),life:.17,face:player.face});sound(170,.11,'sawtooth',.18,-130);sound(86,.2,'triangle',.12,-50);enemies.forEach(e=>{if(!e.dead&&Math.abs(e.x-player.x)<670)e.alert=true});}else{if(player.attackTimer>0||player.stamina<12)return;player.stamina-=17;player.attackTimer=.52;player.noise=Math.max(player.noise,.14);sound(190,.09,'triangle',.04,-100)}let range=gun?610:96;let options=enemies.filter(e=>!e.dead&&(e.x-player.x)*player.face>-16&&Math.abs(e.x-player.x)<range).sort((a,b)=>Math.abs(a.x-player.x)-Math.abs(b.x-player.x));let e=options[0];if(!e){if(gun)toast('射击落空',.85);return;}let stealthStrike=!gun&&!e.alert&&((player.x-e.x)*e.face<0)&&Math.abs(e.x-player.x)<85;e.hp-=gun?2:stealthStrike?3:1;e.hitFlash=.18;e.alert=true;e.face=Math.sign(player.x-e.x)||e.face;particles(e.x,GROUND-100,gun?11:6,'#945047');sound(70,.12,'sawtooth',.07,-35);if(e.hp<=0){e.dead=true;e.deathTime=0;toast(stealthStrike?'无声处决 · 感染者倒下':'感染者倒下',1.1)}else if(!gun)toast('近战命中',.85)}
 addEventListener('keydown',e=>{if(['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','ControlLeft','ControlRight'].includes(e.code))e.preventDefault();keys[e.code]=true;if(e.repeat)return;if(e.code==='KeyF'||e.code==='KeyE')interact();if(e.code==='KeyJ'||e.code==='Space')attack(false);if(e.code==='KeyK')attack(true);if(e.code==='KeyR')reload();if(e.code==='KeyH')heal();if(e.code==='Escape')togglePause()});addEventListener('keyup',e=>keys[e.code]=false);addEventListener('blur',()=>{clearInput();if(started&&!paused)togglePause()});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();if(started&&!paused)togglePause()}});
 const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');let stickPointer=null;function resetStick(){knob.style.transform='translate(0px,0px)'}function stickMove(e){let rect=stick.getBoundingClientRect(),center=rect.left+rect.width/2,dx=e.clientX-center,lim=rect.width*.32,m=Math.min(lim,Math.abs(dx)),v=Math.abs(dx)<lim*.22?0:Math.sign(dx);touch.move=v;knob.style.transform=`translate(${Math.sign(dx)*m}px,0px)`}
 stick.addEventListener('pointerdown',e=>{e.preventDefault();if(stickPointer!==null||paused)return;stickPointer=e.pointerId;stick.setPointerCapture(e.pointerId);stickMove(e)});stick.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)stickMove(e)});for(let ev of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(ev,e=>{if(e.pointerId===stickPointer){touch.move=0;stickPointer=null;resetStick()}});
 const releaseActions=[];function act(id,fn,hold=false){releaseActions.push(bindGameAction(document.getElementById(id),()=>{if(!paused)fn(true)},()=>{if(hold)fn(false)}));}act('btnRun',v=>touch.run=v,true);act('btnCrouch',v=>touch.crouch=v,true);act('btnFire',v=>{touch.fire=v;if(v)attack(true)},true);act('btnMelee',v=>{if(v)attack(false)});act('btnInteract',v=>{if(v)interact()});act('btnReload',v=>{if(v)reload()});act('btnHeal',v=>{if(v)heal()});document.addEventListener('contextmenu',e=>e.preventDefault());
 for(let i=0;i<170;i++)dust.push({x:r(i*2)*WORLD,y:r(i*4+5)*540,v:r(i*3+2)*.23+.07,s:r(i*7+7)*2+.4});for(let i=0;i<150;i++)rain.push({x:r(i*5+2)*2000,y:r(i*3+8)*800,s:170+r(i+1)*200,length:7+r(i*7)*14});
-function tick(dt){
+let renderDt=0;
+function tick(dt){renderDt=dt;
  if(scene==='Shelter'){
   ambientTime+=dt;frame++;
   if(!shelterMap.hidden)return;
@@ -166,9 +167,19 @@ function glowLoot(l){
  ctx.translate(0,-51);ctx.rotate(Math.PI/4);ctx.strokeRect(-4,-4,8,8);
  ctx.restore();
 }
+function beginCharacters(camera,visibleWidth){
+ const rendererMode=window.Ember3DCharacters?.ready?'webgl-3d':'sprite-fallback';
+ if(document.documentElement.dataset.characterRenderer!==rendererMode)document.documentElement.dataset.characterRenderer=rendererMode;
+ if(window.Ember3DCharacters?.ready)Ember3DCharacters.beginFrame({viewWidth:visibleWidth,height:HEIGHT,cam:camera,width:w,heightPixels:h,dpr,dt:renderDt});
+}
+function flushCharacters(){if(window.Ember3DCharacters?.ready)Ember3DCharacters.flush(ctx);}
 function char(x,y,isEnemy=false,enemy=null){
  const actor=isEnemy?enemy:player;
- if(window.EmberCharacters){EmberCharacters.draw(ctx,{x,y,face:actor.face,time:ambientTime,walk:actor.walk,moving:isEnemy?!actor.dead&&(actor.alert||Math.abs(actor.x-actor.home)>1):shelterMap.hidden&&!!forward(),crouch:!isEnemy&&player.crouch,run:!isEnemy&&player.run,isEnemy,type:actor.type||0,dead:!!actor.dead,attackTimer:actor.attackTimer||0,shootTimer:actor.shootTimer||0,hurtTimer:actor.hurtTimer||0,hitFlash:actor.hitFlash||0,alert:!!actor.alert});}
+ const state={id:isEnemy?'enemy-'+enemies.indexOf(enemy):'player',x,y,face:actor.face,time:ambientTime,walk:actor.walk,moving:isEnemy?!actor.dead&&(actor.alert||Math.abs(actor.x-actor.home)>1):shelterMap.hidden&&!!forward(),crouch:!isEnemy&&player.crouch,run:!isEnemy&&player.run,isEnemy,type:actor.type||0,dead:!!actor.dead,attackTimer:actor.attackTimer||0,shootTimer:actor.shootTimer||0,hurtTimer:actor.hurtTimer||0,hitFlash:actor.hitFlash||0,alert:!!actor.alert};
+ if(window.Ember3DCharacters?.ready){
+  ctx.save();ctx.fillStyle='#01040380';ctx.beginPath();ctx.ellipse(x,y+1,state.dead?55:20,state.dead?3:4,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  Ember3DCharacters.submit(state);
+ }else window.EmberCharacters?.draw(ctx,state);
 }
 function drawAtmosphere(){
  // Light scattering, drifting dust and near-plane rain are intentionally subtle:
@@ -180,7 +191,7 @@ function drawAtmosphere(){
  ctx.fillStyle=beam;ctx.beginPath();ctx.moveTo(sx,GROUND-100);ctx.lineTo(sx+player.face*340,GROUND-170);ctx.lineTo(sx+player.face*340,GROUND+5);ctx.closePath();ctx.fill();
  for(const p of dust){let xx=p.x-cam;if(xx<0||xx>viewW)continue;fill(xx,p.y,p.s*.65,p.s*.65,'#c5ccbb26')}
  // Brief muzzle bounce illuminates the immediate surroundings, not a permanent glow.
- if(player.shootTimer>.26)grad(sx+player.face*50,GROUND-95,180,'#f3b96934','#f3b96900');
+ if(player.shootTimer>.26)grad(sx+player.face*(window.Ember3DCharacters?.ready?61:50),GROUND-(window.Ember3DCharacters?.ready?105:95),180,'#f3b96934','#f3b96900');
  ctx.restore();
  ctx.save();
  for(let i=0;i<rain.length;i+=2){let p=rain[i],xx=((p.x-cam*.82+2000)%2000+2000)%2000,yy=(p.y+ambientTime*p.s)%800;
@@ -192,8 +203,8 @@ function drawAtmosphere(){
  window.EmberScene?.foreground(ctx,cam,viewW,ambientTime);
  ctx.restore();
 }
-function draw(){if(scene==='Shelter'){drawShelter();return;}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.save();let scale=h/HEIGHT;ctx.scale(scale,scale);let shake=cameraShake?(r(frame*3)-.5)*cameraShake:0;ctx.translate(shake,0);{if(!window.EmberScene?.ready)sky();let sourceLeft=Math.max(0,Math.min(WORLD-1,cam));let sourceW=Math.min(WORLD-sourceLeft,viewW);if(sourceW>0)ctx.drawImage(environment,sourceLeft,0,sourceW,HEIGHT,0,0,sourceW,HEIGHT);}
-ctx.save();ctx.translate(-cam,0);for(const loot of loots)glowLoot(loot);for(let i=0;i<enemies.length;i++){if(enemies[i].x>cam-180&&enemies[i].x<cam+viewW+180)char(enemies[i].x,GROUND,true,enemies[i]);}char(player.x,GROUND,false);for(const b of bullets){let alpha=b.life/.17;ctx.strokeStyle=`rgba(251,204,130,${alpha*.7})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.face*370,b.y);ctx.stroke()}for(const f of fx){ctx.globalAlpha=Math.max(0,f.life);fill(f.x,f.y,f.size,f.size,f.col)}ctx.globalAlpha=1;ctx.restore();drawAtmosphere();if(player.hurtTimer>0){fill(0,0,viewW,HEIGHT,`rgba(125,19,18,${player.hurtTimer*.17})`)}ctx.restore()}
+function draw(){if(scene==='Shelter'){drawShelter();return;}beginCharacters(cam,viewW);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.save();let scale=h/HEIGHT;ctx.scale(scale,scale);let shake=cameraShake?(r(frame*3)-.5)*cameraShake:0;ctx.translate(shake,0);{if(!window.EmberScene?.ready)sky();let sourceLeft=Math.max(0,Math.min(WORLD-1,cam));let sourceW=Math.min(WORLD-sourceLeft,viewW);if(sourceW>0)ctx.drawImage(environment,sourceLeft,0,sourceW,HEIGHT,0,0,sourceW,HEIGHT);}
+ctx.save();ctx.translate(-cam,0);for(const loot of loots)glowLoot(loot);for(let i=0;i<enemies.length;i++){if(enemies[i].x>cam-180&&enemies[i].x<cam+viewW+180)char(enemies[i].x,GROUND,true,enemies[i]);}char(player.x,GROUND,false);flushCharacters();for(const b of bullets){let alpha=b.life/.17;ctx.strokeStyle=`rgba(251,204,130,${alpha*.7})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.face*370,b.y);ctx.stroke()}for(const f of fx){ctx.globalAlpha=Math.max(0,f.life);fill(f.x,f.y,f.size,f.size,f.col)}ctx.globalAlpha=1;ctx.restore();drawAtmosphere();if(player.hurtTimer>0){fill(0,0,viewW,HEIGHT,`rgba(125,19,18,${player.hurtTimer*.17})`)}ctx.restore()}
 let shelterFallback=null;
 function paintShelterFallback(){
  if(!shelterFallback){
@@ -237,7 +248,7 @@ function drawShelter(){
  if(!window.EmberScene?.paintShelter?.(ctx,1280,720))paintShelterFallback();
  // Time-of-day tint leaves the local warm practical lights readable.
  fill(0,0,1280,720,`rgba(8,18,25,${Math.max(0,(dayMinutes-720)/360)*.14})`);
- char(shelterX,GROUND,false);
+ beginCharacters(cameraPan,visibleWidth);char(shelterX,GROUND,false);flushCharacters();
  ctx.font='11px -apple-system,BlinkMacSystemFont,sans-serif';ctx.textAlign='center';
  for(const [x,label] of [[270,'储物柜'],[500,workbenchBuilt?'工作台 · 已修复':'工作台'],[1010,'外出地图']]){
   const near=Math.abs(shelterX-x)<115;ctx.fillStyle=near?'#ead9b6':'#babaa47a';ctx.fillText(near?'◇ '+label+' / F':label,x,634);
@@ -253,6 +264,18 @@ function showError(err){window.__gameReady=false;paused=true;overlay.hidden=fals
 function markReady(message='场景、角色与物资已就绪'){
  window.__gameReady=true;lifecycle.setState('Ready');setLoadProgress(100,message);startBtn.disabled=false;startBtn.textContent='进入避难所';
 }
+async function load3DCharacters(progress){
+ let expired=false,timer;
+ try{
+  const load=async()=>{
+   await import(new URL('assets/characters-3d.js?v=3d-01',document.baseURI).href);
+   if(expired)return false;
+   return await window.Ember3DCharacters.load(progress);
+  };
+  return await Promise.race([load(),new Promise(resolve=>{timer=setTimeout(()=>{expired=true;window.Ember3DCharacters?.fallback?.();resolve(false)},20000)})]);
+ }catch(error){console.info('3D 人物不可用，使用序列帧回退：',error.message);return false;}
+ finally{clearTimeout(timer);}
+}
 const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
 async function initializeGame(){
  lifecycle.setState('Loading');window.__gameReady=false;startBtn.disabled=true;
@@ -261,16 +284,18 @@ async function initializeGame(){
   if(!ctx||!ec)throw new Error('浏览器不支持 Canvas 2D');
   setLoadProgress(20,'正在配置画面尺寸…');await nextPaint();resize();
   setLoadProgress(30,'正在生成角色、敌人和物资…');await nextPaint();reset();
-  let sceneProgress=0,characterProgress=0;
-  const report=()=>setLoadProgress(35+45*(sceneProgress*.7+characterProgress*.3),'正在加载场景与人物材质…');
+  let sceneProgress=0,characterProgress=0,modelProgress=0;
+  const report=()=>setLoadProgress(35+45*(sceneProgress*.4+characterProgress*.2+modelProgress*.4),'正在加载场景与人物材质…');
   setLoadProgress(35,'正在加载场景与人物材质…');await nextPaint();
-  const [artReady,charactersReady]=await Promise.all([
+  const [artReady,charactersReady,modelReady]=await Promise.all([
    window.EmberScene?.load((done,total)=>{sceneProgress=total?done/total:1;report();}),
-   window.EmberCharacters?.load?.(fraction=>{characterProgress=fraction;report();})
+   window.EmberCharacters?.load?.(fraction=>{characterProgress=fraction;report();}),
+   load3DCharacters(fraction=>{modelProgress=fraction;report();})
   ]);
   setLoadProgress(85,'正在缓存建筑和环境资源…');await nextPaint();cacheEnv();
   setLoadProgress(95,'正在渲染避难所首帧…');await nextPaint();showShelter();draw();
-  markReady(artReady&&charactersReady?'场景、角色与物资已就绪':'部分材质不可用，已启用基础画面回退');
+  document.documentElement.dataset.characterRenderer=modelReady?'webgl-3d':'sprite-fallback';
+  markReady(artReady&&charactersReady?(modelReady?'场景、3D 人物与物资已就绪':'场景已就绪 · 当前设备使用序列帧人物'):'部分材质不可用，已启用基础画面回退');
  }catch(err){lifecycle.setState('Error');showError(err);}
 }
 initializeGame();
