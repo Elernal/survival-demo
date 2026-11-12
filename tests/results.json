@@ -1,0 +1,22 @@
+[
+  {
+    "device": "desktop",
+    "result": "passed",
+    "errors": []
+  },
+  {
+    "device": "phone-landscape",
+    "result": "passed",
+    "errors": []
+  },
+  {
+    "device": "tablet",
+    "result": "passed",
+    "errors": []
+  },
+  {
+    "device": "phone-portrait",
+    "result": "passed",
+    "errors": []
+  }
+]
