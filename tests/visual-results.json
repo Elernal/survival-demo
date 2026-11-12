@@ -2,41 +2,43 @@
   {
     "viewport": "desktop",
     "result": "passed",
-    "art_requests_at_ready": 3,
-    "start_ui_action_ms": 142.0,
-    "headless_raf_median_ms": 16.7,
-    "headless_raf_p95_ms": 16.7,
+    "art_requests_at_ready": 4,
+    "shelter_build": true,
+    "mission_and_day2": true,
     "js_errors": []
   },
   {
     "viewport": "phone-landscape",
     "result": "passed",
-    "art_requests_at_ready": 3,
-    "start_ui_action_ms": 45.6,
-    "headless_raf_median_ms": 16.7,
-    "headless_raf_p95_ms": 16.8,
+    "art_requests_at_ready": 4,
+    "shelter_build": true,
+    "mission_and_day2": false,
     "js_errors": []
   },
   {
     "viewport": "phone-portrait",
     "result": "passed",
-    "art_requests_at_ready": 3,
-    "start_ui_action_ms": 25.3,
-    "headless_raf_median_ms": 16.7,
-    "headless_raf_p95_ms": 16.8,
+    "art_requests_at_ready": 4,
+    "shelter_build": true,
+    "mission_and_day2": false,
     "js_errors": []
   },
   {
     "viewport": "tablet",
     "result": "passed",
-    "art_requests_at_ready": 3,
-    "start_ui_action_ms": 41.9,
-    "headless_raf_median_ms": 16.7,
-    "headless_raf_p95_ms": 16.7,
+    "art_requests_at_ready": 4,
+    "shelter_build": true,
+    "mission_and_day2": false,
     "js_errors": []
   },
   {
-    "case": "art-routes-blocked",
+    "case": "headless-real-time-shelter",
+    "median_raf_ms": 16.7,
+    "p95_raf_ms": 16.8,
+    "real_mobile_benchmark": false
+  },
+  {
+    "case": "all-art-routes-blocked",
     "result": "passed",
     "js_errors": []
   }

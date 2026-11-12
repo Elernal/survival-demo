@@ -3,6 +3,53 @@
 const canvas=document.querySelector('#game');let ctx=canvas.getContext('2d',{alpha:true});const hud={hp:document.querySelector('#hpFill'),sp:document.querySelector('#spFill'),hpText:document.querySelector('#hpText'),spText:document.querySelector('#spText'),ammo:document.querySelector('#ammoText'),task:document.querySelector('#task'),hint:document.querySelector('#hint'),toast:document.querySelector('#toast'),zone:document.querySelector('#zoneName')};const overlay=document.querySelector('#overlay'),startBtn=document.querySelector('#startBtn');
 const WORLD=3540,GROUND=575,HEIGHT=720;let w=1280,h=720,dpr=1,viewW=1280,cam=0,frame=0,acc=0,last=0,paused=true,started=false,finished=false,dead=false,audio=null,soundOn=true,quality=1;
 const lifecycle=new GameLifecycle(tick,draw,showError);
+// Persistent shelter simulation is independent of expedition resets.
+let scene='Shelter',shelterX=430,shelterFood=2,shelterParts=3,shelterMeds=1,day=1,dayMinutes=480,workbenchBuilt=false,bedRepaired=false;
+const dayDurationSeconds=120;let clockDisplayMinute=-1;
+const shelterHUD=document.querySelector('#shelterHUD'),shelterMap=document.querySelector('#shelterMap');
+function updateShelterHUD(){
+ document.querySelector('#shelterInventory').textContent=`食物 ${shelterFood} · 零件 ${shelterParts} · 药品 ${shelterMeds}`;
+ const night=dayMinutes>=1080,hour=Math.floor(dayMinutes/60),minute=Math.floor(dayMinutes%60);
+ document.querySelector('#shelterClock').textContent=`第 ${day} 天 · ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} · ${night?'夜晚探索':'白天建设'}`;
+ const depart=document.querySelector('#shelterDepart');depart.disabled=!night;depart.textContent=night?'夜晚：选择探索区域':'18:00 后可外出';
+}
+function showShelter(){
+ scene='Shelter';document.documentElement.dataset.scene=scene;
+ shelterHUD.hidden=false;shelterMap.hidden=true;document.querySelector('#hud').style.display='none';
+ document.querySelector('#touchUI').style.display='';document.querySelector('#desktopHelp').style.display='none';
+ player.crouch=false;player.run=false;player.attackTimer=0;player.shootTimer=0;updateShelterHUD();
+}
+function hideShelter(){
+ scene='Explore';document.documentElement.dataset.scene=scene;
+ shelterHUD.hidden=true;shelterMap.hidden=true;document.querySelector('#hud').style.display='';document.querySelector('#desktopHelp').style.display='';
+ document.querySelector('#worldTime').textContent=`第 ${String(day).padStart(2,'0')} 天 / 18:00 / 雾雨`;
+}
+function openShelterMap(){
+ if(!started||paused||scene!=='Shelter')return;
+ if(dayMinutes<1080){document.querySelector('#shelterTip').textContent='白天先建设和整理物资，18:00 后才能外出';return;}
+ clearInput();shelterMap.hidden=false;
+}
+function buildShelter(){
+ if(!started||paused||scene!=='Shelter'||!shelterMap.hidden)return;
+ const tip=document.querySelector('#shelterTip');
+ if(!workbenchBuilt){if(shelterParts<2){tip.textContent='修复工作台需要 2 个零件';return;}shelterParts-=2;workbenchBuilt=true;tip.textContent='工作台修复完成！可用于后续制作';}
+ else if(!bedRepaired){if(shelterParts<1){tip.textContent='修复床铺需要 1 个零件';return;}shelterParts--;bedRepaired=true;tip.textContent='床铺修复完成！休息条件改善';}
+ else tip.textContent='目前设施已经修复，等待夜晚探索获取更多物资';
+ updateShelterHUD();
+}
+function activatePlaying(){
+ clearInput();createAudio();started=true;paused=false;overlay.hidden=true;
+ // Scene changes may happen inside a running frame. Keep that frame's scheduler.
+ if(lifecycle.state!=='Playing')lifecycle.setState('Playing');
+}
+function departShelter(){
+ if(!started||paused||scene!=='Shelter'||shelterMap.hidden||dayMinutes<1080)return;
+ reset();hideShelter();activatePlaying();
+}
+document.querySelector('#shelterDepart').addEventListener('click',openShelterMap);
+document.querySelector('#shelterBuild').addEventListener('click',buildShelter);
+document.querySelector('#shelterBack').addEventListener('click',()=>{shelterMap.hidden=true;clearInput();});
+document.querySelector('#shelterGo').addEventListener('click',departShelter);
 const keys=Object.create(null),touch={move:0,run:false,crouch:false,fire:false};const player={x:160,y:GROUND,face:1,hp:100,stamina:100,ammo:6,reserve:18,meds:1,food:0,parts:0,caseFound:false,walk:0,attackTimer:0,shootTimer:0,hurtTimer:0,crouch:false,run:false,noise:0,lastFx:0};
 let enemies=[],loots=[],fx=[],dust=[],rain=[],cameraShake=0,bullets=[],lastHint='',hintUntil=0,toastUntil=0,ambientTime=0,winShown=false;
 function r(seed){let x=Math.sin(seed*112.9898+78.233)*43758.5453;return x-Math.floor(x)}
@@ -15,25 +62,55 @@ function sound(freq,duration=.11,type='triangle',gain=.07,slide=0){if(!soundOn||
 function toast(s,duration=2.5){hud.toast.textContent=s;hud.toast.classList.toggle('show',!!s);toastUntil=ambientTime+duration}
 function hint(s,duration=.35){lastHint=s;hintUntil=ambientTime+duration;hud.hint.textContent=s;hud.hint.classList.toggle('show',!!s)}
 function setTask(){hud.task.innerHTML=player.caseFound?'任务：安全撤离<span>医疗箱已找到。返回最左侧入口，带它回到避难所。</span>':'任务：寻找医疗物资<span>深入旧居民楼，在临时诊室找到医疗箱。</span>'}
-function openOverlay(title,sub,story,action){paused=true;clearInput();lifecycle.setState(finished?'Completed':dead?'GameOver':'Paused');overlay.hidden=false;document.querySelector('#overlayTitle').textContent=title;document.querySelector('#overlaySub').textContent=sub;document.querySelector('#overlayStory').innerHTML=story;startBtn.textContent=action;}
+function openOverlay(title,sub,story,action){paused=true;shelterMap.hidden=true;clearInput();lifecycle.setState(finished?'Completed':dead?'GameOver':'Paused');overlay.hidden=false;document.querySelector('#overlayTitle').textContent=title;document.querySelector('#overlaySub').textContent=sub;document.querySelector('#overlayStory').innerHTML=story;startBtn.textContent=action;}
 function clearInput(){Object.keys(keys).forEach(k=>keys[k]=false);Object.assign(touch,{move:0,run:false,crouch:false,fire:false});stickPointer=null;resetStick();document.querySelectorAll('.pressed').forEach(b=>b.classList.remove('pressed'));releaseActions.forEach(fn=>fn());}
-function start(){if(!window.__gameReady||lifecycle.state==='Playing')return;if(dead||finished)reset();clearInput();createAudio();started=true;paused=false;overlay.hidden=true;lifecycle.setState('Playing');}
+function start(){if(!window.__gameReady||lifecycle.state==='Playing'&&!paused)return;if(dead||finished){reset();showShelter();}activatePlaying();}
 startBtn.addEventListener('click',start);
-function togglePause(){if(!started||dead||finished)return;if(paused){start()}else{openOverlay('暂 停','外面还不安全','你已经离开了避难所。<br>继续深入搜索，或者带着物资从左侧入口撤离。','继续探索')}}
+function togglePause(){if(!started||dead||finished)return;if(paused){start()}else{openOverlay('暂 停',scene==='Shelter'?'灰烬之家 · SHELTER':'外面还不安全',scene==='Shelter'?'整理物资、修复设施。<br>夜幕降临后，选择区域外出探索。':'你已经离开了避难所。<br>继续深入搜索，或者带着物资从左侧入口撤离。','继续游戏')}}
 document.querySelector('#pauseBtn').addEventListener('click',togglePause);document.querySelector('#soundToggle').addEventListener('click',()=>{soundOn=!soundOn;document.querySelector('#soundToggle').textContent=soundOn?'♫':'♪̸';if(soundOn)createAudio()});
-function end(win){finished=win;dead=!win;paused=true;let msg=win?`你带回了急救物资。<br>额外搜刮：罐头 <strong>${player.food}</strong>、零件 <strong>${player.parts}</strong>、剩余子弹 <strong>${player.ammo+player.reserve}</strong>。<br>任务完成，但附近还有许多未清理的区域。`:`你没能活着走出废墟。<br>本次带回的物资全部丢失。试试保持潜行，利用近战节省弹药；遭遇包围时可以撤退。`;sound(win?570:130,.5,win?'sine':'sawtooth',.13,win?300:-85);openOverlay(win?'返 回':'失 守',win?'探索完成 · SURVIVED':'探索失败 · LOST',msg,'重新开始')}
+function end(win){
+ if(win){
+  shelterFood+=player.food;shelterParts+=player.parts;shelterMeds+=player.meds;day++;dayMinutes=480;clockDisplayMinute=-1;shelterX=430;
+  reset();showShelter();activatePlaying();
+  document.querySelector('#shelterTip').textContent='清晨返回基地，昨晚搜刮物资已入库。开始新一天建设。';
+  sound(570,.5,'sine',.13,300);return;
+ }
+ finished=false;dead=true;paused=true;
+ sound(130,.5,'sawtooth',.13,-85);
+ openOverlay('失 守','探索失败 · LOST','你没能活着走出废墟。<br>本次带回的物资全部丢失。保持潜行，利用近战节省弹药；遭遇包围时可以撤退。','返回避难所');
+}
 function forward(){return (keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)||touch.move}
-function interact(){if(!started||paused)return;if(player.x<295){if(player.caseFound){end(true)}else toast('还没找到医疗箱。可以继续探索。');return;}let near=loots.find(v=>!v.taken&&Math.abs(v.x-player.x)<95);if(!near){toast('附近没有可以搜刮的物资',1.4);return;}near.taken=true;let text='';if(near.t==='food'){player.food+=2;text='找到罐头 ×2'}if(near.t==='parts'){player.parts+=3;text='找到零件 ×3'}if(near.t==='ammo'){player.reserve+=8;text='找到 9mm 子弹 ×8'}if(near.t==='case'){player.caseFound=true;text='找到急救箱！现在返回入口撤离';setTask()}if(near.t==='med'){player.meds+=2;text='找到绷带 ×2'}particles(near.x,GROUND-80,15,'#e4c896');sound(550,.12,'triangle',.08,220);toast(text,3)}
-function reload(){if(!started||paused)return;let n=Math.min(6-player.ammo,player.reserve);if(n<=0){toast(player.reserve?'弹匣已满':'没有备用弹药',1.3);return}player.ammo+=n;player.reserve-=n;sound(480,.08,'square',.04,-170);toast('换弹完成',1.2)}
-function heal(){if(!started||paused)return;if(player.meds<=0){toast('没有医疗物资',1.5);return}if(player.hp>=99){toast('不需要治疗',1.3);return}player.meds--;player.hp=Math.min(100,player.hp+45);sound(700,.24,'sine',.08,260);toast('使用绷带，生命恢复',2)}
+function interact(){if(!started||paused||!shelterMap.hidden)return;
+ if(scene==='Shelter'){
+  if(Math.abs(shelterX-1010)<125){openShelterMap();return;}
+  if(Math.abs(shelterX-270)<115){document.querySelector('#shelterTip').textContent='储物柜：食物 '+shelterFood+' · 零件 '+shelterParts+' · 药品 '+shelterMeds;return;}
+  if(Math.abs(shelterX-500)<110){buildShelter();return;}
+  document.querySelector('#shelterTip').textContent='白天可以修复工作台与床铺，夜晚才能外出';return;
+ }
+ if(player.x<295){if(player.caseFound){end(true)}else toast('还没找到医疗箱。可以继续探索。');return;}let near=loots.find(v=>!v.taken&&Math.abs(v.x-player.x)<95);if(!near){toast('附近没有可以搜刮的物资',1.4);return;}near.taken=true;let text='';if(near.t==='food'){player.food+=2;text='找到罐头 ×2'}if(near.t==='parts'){player.parts+=3;text='找到零件 ×3'}if(near.t==='ammo'){player.reserve+=8;text='找到 9mm 子弹 ×8'}if(near.t==='case'){player.caseFound=true;text='找到急救箱！现在返回入口撤离';setTask()}if(near.t==='med'){player.meds+=2;text='找到绷带 ×2'}particles(near.x,GROUND-80,15,'#e4c896');sound(550,.12,'triangle',.08,220);toast(text,3)}
+function reload(){if(!started||paused||scene!=='Explore'||!shelterMap.hidden)return;let n=Math.min(6-player.ammo,player.reserve);if(n<=0){toast(player.reserve?'弹匣已满':'没有备用弹药',1.3);return}player.ammo+=n;player.reserve-=n;sound(480,.08,'square',.04,-170);toast('换弹完成',1.2)}
+function heal(){if(!started||paused||scene!=='Explore'||!shelterMap.hidden)return;if(player.meds<=0){toast('没有医疗物资',1.5);return}if(player.hp>=99){toast('不需要治疗',1.3);return}player.meds--;player.hp=Math.min(100,player.hp+45);sound(700,.24,'sine',.08,260);toast('使用绷带，生命恢复',2)}
 function particles(x,y,n,color){for(let i=0;i<n;i++)fx.push({x,y,vx:(r(i*9+frame)-.5)*270,vy:-r(i*3+frame)*190,life:.3+r(i+frame)*.5,col:color,size:1+r(i*6+frame)*3});}
-function attack(gun){if(!started||paused)return;if(gun){if(player.shootTimer>0)return;if(player.ammo<=0){sound(340,.05,'square',.04);toast('弹匣已空，按换弹',1.2);return}player.ammo--;player.shootTimer=.34;player.attackTimer=.18;player.noise=1.7;cameraShake=7;bullets.push({x:player.x+player.face*23,y:GROUND-90,life:.17,face:player.face});sound(170,.11,'sawtooth',.18,-130);sound(86,.2,'triangle',.12,-50);enemies.forEach(e=>{if(!e.dead&&Math.abs(e.x-player.x)<670)e.alert=true});}else{if(player.attackTimer>0||player.stamina<12)return;player.stamina-=17;player.attackTimer=.52;player.noise=Math.max(player.noise,.14);sound(190,.09,'triangle',.04,-100)}let range=gun?610:96;let options=enemies.filter(e=>!e.dead&&(e.x-player.x)*player.face>-16&&Math.abs(e.x-player.x)<range).sort((a,b)=>Math.abs(a.x-player.x)-Math.abs(b.x-player.x));let e=options[0];if(!e){if(gun)toast('射击落空',.85);return;}let stealthStrike=!gun&&!e.alert&&((player.x-e.x)*e.face<0)&&Math.abs(e.x-player.x)<85;e.hp-=gun?2:stealthStrike?3:1;e.hitFlash=.18;e.alert=true;e.face=Math.sign(player.x-e.x)||e.face;particles(e.x,GROUND-100,gun?11:6,'#945047');sound(70,.12,'sawtooth',.07,-35);if(e.hp<=0){e.dead=true;e.deathTime=0;toast(stealthStrike?'无声处决 · 感染者倒下':'感染者倒下',1.1)}else if(!gun)toast('近战命中',.85)}
+function attack(gun){if(!started||paused||scene!=='Explore'||!shelterMap.hidden)return;if(gun){if(player.shootTimer>0)return;if(player.ammo<=0){sound(340,.05,'square',.04);toast('弹匣已空，按换弹',1.2);return}player.ammo--;player.shootTimer=.34;player.attackTimer=.18;player.noise=1.7;cameraShake=7;bullets.push({x:player.x+player.face*23,y:GROUND-90,life:.17,face:player.face});sound(170,.11,'sawtooth',.18,-130);sound(86,.2,'triangle',.12,-50);enemies.forEach(e=>{if(!e.dead&&Math.abs(e.x-player.x)<670)e.alert=true});}else{if(player.attackTimer>0||player.stamina<12)return;player.stamina-=17;player.attackTimer=.52;player.noise=Math.max(player.noise,.14);sound(190,.09,'triangle',.04,-100)}let range=gun?610:96;let options=enemies.filter(e=>!e.dead&&(e.x-player.x)*player.face>-16&&Math.abs(e.x-player.x)<range).sort((a,b)=>Math.abs(a.x-player.x)-Math.abs(b.x-player.x));let e=options[0];if(!e){if(gun)toast('射击落空',.85);return;}let stealthStrike=!gun&&!e.alert&&((player.x-e.x)*e.face<0)&&Math.abs(e.x-player.x)<85;e.hp-=gun?2:stealthStrike?3:1;e.hitFlash=.18;e.alert=true;e.face=Math.sign(player.x-e.x)||e.face;particles(e.x,GROUND-100,gun?11:6,'#945047');sound(70,.12,'sawtooth',.07,-35);if(e.hp<=0){e.dead=true;e.deathTime=0;toast(stealthStrike?'无声处决 · 感染者倒下':'感染者倒下',1.1)}else if(!gun)toast('近战命中',.85)}
 addEventListener('keydown',e=>{if(['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','ControlLeft','ControlRight'].includes(e.code))e.preventDefault();keys[e.code]=true;if(e.repeat)return;if(e.code==='KeyF'||e.code==='KeyE')interact();if(e.code==='KeyJ'||e.code==='Space')attack(false);if(e.code==='KeyK')attack(true);if(e.code==='KeyR')reload();if(e.code==='KeyH')heal();if(e.code==='Escape')togglePause()});addEventListener('keyup',e=>keys[e.code]=false);addEventListener('blur',()=>{clearInput();if(started&&!paused)togglePause()});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();if(started&&!paused)togglePause()}});
 const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');let stickPointer=null;function resetStick(){knob.style.transform='translate(0px,0px)'}function stickMove(e){let rect=stick.getBoundingClientRect(),center=rect.left+rect.width/2,dx=e.clientX-center,lim=rect.width*.32,m=Math.min(lim,Math.abs(dx)),v=Math.abs(dx)<lim*.22?0:Math.sign(dx);touch.move=v;knob.style.transform=`translate(${Math.sign(dx)*m}px,0px)`}
 stick.addEventListener('pointerdown',e=>{e.preventDefault();if(stickPointer!==null||paused)return;stickPointer=e.pointerId;stick.setPointerCapture(e.pointerId);stickMove(e)});stick.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)stickMove(e)});for(let ev of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(ev,e=>{if(e.pointerId===stickPointer){touch.move=0;stickPointer=null;resetStick()}});
 const releaseActions=[];function act(id,fn,hold=false){releaseActions.push(bindGameAction(document.getElementById(id),()=>{if(!paused)fn(true)},()=>{if(hold)fn(false)}));}act('btnRun',v=>touch.run=v,true);act('btnCrouch',v=>touch.crouch=v,true);act('btnFire',v=>{touch.fire=v;if(v)attack(true)},true);act('btnMelee',v=>{if(v)attack(false)});act('btnInteract',v=>{if(v)interact()});act('btnReload',v=>{if(v)reload()});act('btnHeal',v=>{if(v)heal()});document.addEventListener('contextmenu',e=>e.preventDefault());
 for(let i=0;i<170;i++)dust.push({x:r(i*2)*WORLD,y:r(i*4+5)*540,v:r(i*3+2)*.23+.07,s:r(i*7+7)*2+.4});for(let i=0;i<150;i++)rain.push({x:r(i*5+2)*2000,y:r(i*3+8)*800,s:170+r(i+1)*200,length:7+r(i*7)*14});
-function tick(dt){ambientTime+=dt;frame++;let dx=forward();player.crouch=!!(keys.ControlLeft||keys.ControlRight||touch.crouch);player.run=!!(keys.ShiftLeft||keys.ShiftRight||touch.run)&&!player.crouch&&player.stamina>4;if(dx){player.face=Math.sign(dx);let speed=player.crouch?88:player.run?300:178;player.x=Math.max(75,Math.min(WORLD-60,player.x+dx*speed*dt));player.walk+=dt*(player.crouch?5:player.run?13:9);if(player.run)player.stamina=Math.max(0,player.stamina-18*dt);player.noise=Math.max(player.noise,player.run?.25:player.crouch?.018:.075)}else player.walk+=dt*2;if(!player.run)player.stamina=Math.min(100,player.stamina+(player.crouch?20:15)*dt);player.noise=Math.max(0,player.noise-dt*.43);player.shootTimer=Math.max(0,player.shootTimer-dt);player.attackTimer=Math.max(0,player.attackTimer-dt);player.hurtTimer=Math.max(0,player.hurtTimer-dt);if(touch.fire&&player.shootTimer<=0)attack(true);for(let i=0;i<enemies.length;i++){let e=enemies[i];if(e.dead){e.deathTime+=dt;continue}e.walk+=dt*5;e.hitFlash=Math.max(0,e.hitFlash-dt);e.attackCooldown-=dt;let d=Math.abs(e.x-player.x);let range=player.crouch?110:player.run?360:235;range+=player.noise*410;let facingPlayer=(player.x-e.x)*e.face>0;let visuallySpotted=facingPlayer||!player.crouch&&d<74;let nearbySound=player.noise>.12&&d<range*.8;if(d<range&&(visuallySpotted||nearbySound))e.alert=true;if(e.alert){e.face=Math.sign(player.x-e.x)||e.face;if(d>55)e.x+=e.face*dt*(e.type?94:68);else if(e.attackCooldown<=0){e.attackCooldown=1.25;player.hp=Math.max(0,player.hp-(e.type?25:18));player.hurtTimer=.55;cameraShake=10;particles(player.x,GROUND-82,8,'#a95f59');sound(95,.16,'sawtooth',.14,-60);toast('受到感染者攻击！',1.2);if(player.hp<=0){end(false);return}}}else{let desired=e.home+Math.sin(ambientTime*.48+i*3.1)*82;let delta=desired-e.x;e.face=Math.sign(delta)||e.face;e.x+=Math.sign(delta)*Math.min(Math.abs(delta),dt*22)} }
+function tick(dt){
+ if(scene==='Shelter'){
+  ambientTime+=dt;frame++;
+  if(!shelterMap.hidden)return;
+  if(dayMinutes<1080){
+   dayMinutes=Math.min(1080,dayMinutes+600*dt/dayDurationSeconds);
+   const currentMinute=Math.floor(dayMinutes);
+   if(currentMinute!==clockDisplayMinute){clockDisplayMinute=currentMinute;updateShelterHUD();if(dayMinutes>=1080)document.querySelector('#shelterTip').textContent='夜幕降临。现在可以选择探索区域。';}
+  }
+  const move=forward();shelterX=Math.max(100,Math.min(1100,shelterX+move*220*dt));
+  player.walk+=Math.abs(move)*dt*8;player.face=move?Math.sign(move):player.face;
+  player.crouch=false;player.run=false;return;
+ }
+ ambientTime+=dt;frame++;let dx=forward();player.crouch=!!(keys.ControlLeft||keys.ControlRight||touch.crouch);player.run=!!(keys.ShiftLeft||keys.ShiftRight||touch.run)&&!player.crouch&&player.stamina>4;if(dx){player.face=Math.sign(dx);let speed=player.crouch?88:player.run?300:178;player.x=Math.max(75,Math.min(WORLD-60,player.x+dx*speed*dt));player.walk+=dt*(player.crouch?5:player.run?13:9);if(player.run)player.stamina=Math.max(0,player.stamina-18*dt);player.noise=Math.max(player.noise,player.run?.25:player.crouch?.018:.075)}else player.walk+=dt*2;if(!player.run)player.stamina=Math.min(100,player.stamina+(player.crouch?20:15)*dt);player.noise=Math.max(0,player.noise-dt*.43);player.shootTimer=Math.max(0,player.shootTimer-dt);player.attackTimer=Math.max(0,player.attackTimer-dt);player.hurtTimer=Math.max(0,player.hurtTimer-dt);if(touch.fire&&player.shootTimer<=0)attack(true);for(let i=0;i<enemies.length;i++){let e=enemies[i];if(e.dead){e.deathTime+=dt;continue}e.walk+=dt*5;e.hitFlash=Math.max(0,e.hitFlash-dt);e.attackCooldown-=dt;let d=Math.abs(e.x-player.x);let range=player.crouch?110:player.run?360:235;range+=player.noise*410;let facingPlayer=(player.x-e.x)*e.face>0;let visuallySpotted=facingPlayer||!player.crouch&&d<74;let nearbySound=player.noise>.12&&d<range*.8;if(d<range&&(visuallySpotted||nearbySound))e.alert=true;if(e.alert){e.face=Math.sign(player.x-e.x)||e.face;if(d>55)e.x+=e.face*dt*(e.type?94:68);else if(e.attackCooldown<=0){e.attackCooldown=1.25;player.hp=Math.max(0,player.hp-(e.type?25:18));player.hurtTimer=.55;cameraShake=10;particles(player.x,GROUND-82,8,'#a95f59');sound(95,.16,'sawtooth',.14,-60);toast('受到感染者攻击！',1.2);if(player.hp<=0){end(false);return}}}else{let desired=e.home+Math.sin(ambientTime*.48+i*3.1)*82;let delta=desired-e.x;e.face=Math.sign(delta)||e.face;e.x+=Math.sign(delta)*Math.min(Math.abs(delta),dt*22)} }
 for(const b of bullets)b.life-=dt;bullets=bullets.filter(b=>b.life>0);for(const f of fx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vy+=330*dt;f.life-=dt}fx=fx.filter(f=>f.life>0);for(const p of dust){p.y-=p.v*dt*10;if(p.y<0)p.y=580}cameraShake*=.83;cam+=(Math.max(0,Math.min(WORLD-viewW,player.x-viewW*.40))-cam)*Math.min(1,dt*4);hud.hp.style.width=player.hp+'%';hud.sp.style.width=player.stamina+'%';hud.hpText.textContent=Math.ceil(player.hp);hud.spText.textContent=Math.ceil(player.stamina);hud.ammo.textContent=String(player.ammo).padStart(2,'0')+' / '+String(player.reserve).padStart(2,'0');let name=player.x<460?'北区 · 街道入口':player.x<1750?'北区 · 废弃住宅':player.x<2600?'北区 · 临时诊室':'北区 · 仓储区';hud.zone.textContent=name;let nearby=loots.find(v=>!v.taken&&Math.abs(v.x-player.x)<95);let h=player.x<290?'◇ 入口 · '+(player.caseFound?'点击搜刮 / 按 F 撤离':'继续寻找医疗箱'):nearby?'◇ 搜刮：'+nearby.name+' · 按 F / 搜刮':'';if(h)hint(h,.2);else if(ambientTime>hintUntil)hud.hint.classList.remove('show');if(ambientTime>toastUntil)hud.toast.classList.remove('show');}
 // --- Painterly 2.5D rendering: original geometry, noise, lighting and animation ---
 function fill(x,y,W,H,c){ctx.fillStyle=c;ctx.fillRect(x,y,W,H)}function line(x,y,x2,y2,c,width=1){ctx.strokeStyle=c;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}function polygon(points,c){ctx.fillStyle=c;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fill()}function grad(x,y,rad,c0,c1){let g=ctx.createRadialGradient(x,y,0,x,y,rad);g.addColorStop(0,c0);g.addColorStop(1,c1);ctx.fillStyle=g;ctx.fillRect(x-rad,y-rad,rad*2,rad*2)}
@@ -91,7 +168,7 @@ function glowLoot(l){
 }
 function char(x,y,isEnemy=false,enemy=null){
  const actor=isEnemy?enemy:player;
- if(window.EmberCharacters){EmberCharacters.draw(ctx,{x,y,face:actor.face,time:ambientTime,walk:actor.walk,moving:isEnemy?!actor.dead&&(actor.alert||Math.abs(actor.x-actor.home)>1):!!forward(),crouch:!isEnemy&&player.crouch,run:!isEnemy&&player.run,isEnemy,type:actor.type||0,dead:!!actor.dead,attackTimer:actor.attackTimer||0,shootTimer:actor.shootTimer||0,hurtTimer:actor.hurtTimer||0,hitFlash:actor.hitFlash||0,alert:!!actor.alert});}
+ if(window.EmberCharacters){EmberCharacters.draw(ctx,{x,y,face:actor.face,time:ambientTime,walk:actor.walk,moving:isEnemy?!actor.dead&&(actor.alert||Math.abs(actor.x-actor.home)>1):shelterMap.hidden&&!!forward(),crouch:!isEnemy&&player.crouch,run:!isEnemy&&player.run,isEnemy,type:actor.type||0,dead:!!actor.dead,attackTimer:actor.attackTimer||0,shootTimer:actor.shootTimer||0,hurtTimer:actor.hurtTimer||0,hitFlash:actor.hitFlash||0,alert:!!actor.alert});}
 }
 function drawAtmosphere(){
  // Light scattering, drifting dust and near-plane rain are intentionally subtle:
@@ -115,18 +192,86 @@ function drawAtmosphere(){
  window.EmberScene?.foreground(ctx,cam,viewW,ambientTime);
  ctx.restore();
 }
-function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.save();let scale=h/HEIGHT;ctx.scale(scale,scale);let shake=cameraShake?(r(frame*3)-.5)*cameraShake:0;ctx.translate(shake,0);{if(!window.EmberScene?.ready)sky();let sourceLeft=Math.max(0,Math.min(WORLD-1,cam));let sourceW=Math.min(WORLD-sourceLeft,viewW);if(sourceW>0)ctx.drawImage(environment,sourceLeft,0,sourceW,HEIGHT,0,0,sourceW,HEIGHT);}
+function draw(){if(scene==='Shelter'){drawShelter();return;}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.save();let scale=h/HEIGHT;ctx.scale(scale,scale);let shake=cameraShake?(r(frame*3)-.5)*cameraShake:0;ctx.translate(shake,0);{if(!window.EmberScene?.ready)sky();let sourceLeft=Math.max(0,Math.min(WORLD-1,cam));let sourceW=Math.min(WORLD-sourceLeft,viewW);if(sourceW>0)ctx.drawImage(environment,sourceLeft,0,sourceW,HEIGHT,0,0,sourceW,HEIGHT);}
 ctx.save();ctx.translate(-cam,0);for(const loot of loots)glowLoot(loot);for(let i=0;i<enemies.length;i++){if(enemies[i].x>cam-180&&enemies[i].x<cam+viewW+180)char(enemies[i].x,GROUND,true,enemies[i]);}char(player.x,GROUND,false);for(const b of bullets){let alpha=b.life/.17;ctx.strokeStyle=`rgba(251,204,130,${alpha*.7})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.face*370,b.y);ctx.stroke()}for(const f of fx){ctx.globalAlpha=Math.max(0,f.life);fill(f.x,f.y,f.size,f.size,f.col)}ctx.globalAlpha=1;ctx.restore();drawAtmosphere();if(player.hurtTimer>0){fill(0,0,viewW,HEIGHT,`rgba(125,19,18,${player.hurtTimer*.17})`)}ctx.restore()}
-function showError(err){window.__gameReady=false;paused=true;overlay.hidden=false;startBtn.disabled=true;startBtn.textContent='初始化失败，请刷新';document.querySelector('#loadStatus').textContent='游戏错误：'+(err?.message||err);console.error(err);}
-function markReady(){window.__gameReady=true;lifecycle.setState('Ready');startBtn.disabled=false;startBtn.textContent='开始探索';document.querySelector('#loadStatus').textContent='场景、角色与物资已就绪';}
-lifecycle.setState('Loading');
-// Let the loading UI paint, then prepare all essential resources before Ready.
-requestAnimationFrame(async()=>{try{
- if(!ctx||!ec)throw new Error('浏览器不支持 Canvas 2D');
- resize();reset();
- const status=document.querySelector('#loadStatus');
- const [artReady]=await Promise.all([window.EmberScene?.load((done,total)=>status.textContent=`加载场景资源 ${done} / ${total}…`),window.EmberCharacters?.load?.()]);
- cacheEnv();draw();markReady();
- if(!artReady)status.textContent='场景资源不可用，已启用基础画面';
-}catch(err){lifecycle.setState('Error');showError(err);}});
+let shelterFallback=null;
+function paintShelterFallback(){
+ if(!shelterFallback){
+  shelterFallback=document.createElement('canvas');shelterFallback.width=1280;shelterFallback.height=720;
+  const current=ctx;
+  try{ctx=shelterFallback.getContext('2d');paintShelterGeometry();}finally{ctx=current;}
+ }
+ ctx.drawImage(shelterFallback,0,0);
+}
+function paintShelterGeometry(){
+let wall=ctx.createLinearGradient(0,0,0,720);wall.addColorStop(0,'#0a151b');wall.addColorStop(.55,'#26302d');wall.addColorStop(1,'#101719');fill(0,0,1280,720,wall);
+// Exterior ruins visible through broken upper windows.
+for(let i=0;i<14;i++){let x=i*105-45,hh=130+r(i+22)*150;fill(x,185-hh,75,hh,'#172329');for(let k=0;k<5;k++)fill(x+12+(k%2)*28,195-hh+Math.floor(k/2)*39,12,19,'#5d675044')}
+// Cross-section: two stacked rooms, heavy concrete beams and exposed brick.
+fill(90,102,1090,520,'#444840');fill(108,119,1054,477,'#353c39');fill(110,124,1050,219,'#2b3636');fill(110,367,1050,229,'#353831');
+for(let y of [106,351,598]){fill(70,y,1130,22,'#1b2528');fill(72,y+3,1126,4,'#71716666');fill(72,y+21,1126,7,'#0c1114')}
+for(let x of [92,638,1162]){fill(x,112,22,485,'#1c292a');fill(x+5,112,4,485,'#76736344')}
+for(let row=0;row<2;row++)for(let j=0;j<100;j++){let x=115+r(j*31+row)*1040,y=132+row*242+r(j*17+row)*205;fill(x,y,18+r(j+5)*37,2,'#b4a89116')}
+// Upper sleeping room: broken glass, bed, bookshelves, lamp and weathered cabinet.
+windowObj(170,151,155,143);windowObj(805,150,164,145);
+fill(368,281,210,17,'#242a29');fill(373,254,192,31,'#5b6058');fill(390,239,132,25,'#8c8b79');fill(373,286,15,45,'#252a2a');fill(553,286,15,45,'#252a2a');
+fill(995,160,105,181,'#383c36');for(let j=0;j<4;j++){fill(1002,180+j*37,91,7,'#77735b');for(let k=0;k<4;k++)fill(1012+k*20,160+j*37,12,19,k%2?'#7c7765':'#4c625b')}
+fill(670,286,84,54,'#4c5146');fill(684,271,52,16,'#80735b');fill(701,243,7,30,'#3b3930');grad(706,239,100,'#f0d59b33','#f0d59b00');
+// Ground-floor kitchen and storage, dense foreground silhouettes.
+windowObj(165,405,150,129);fill(370,487,230,95,'#414840');fill(370,479,230,15,'#777866');for(let j=0;j<4;j++)fill(385+j*52,501,40,59,'#252f30');fill(389,459,55,20,'#535e58');fill(463,453,39,25,'#6a6a5c');
+fill(195,552,98,37,'#48483d');fill(202,529,85,24,'#6d6551');fill(210,515,13,17,'#b6a98c');fill(240,512,17,19,'#8e9b86');
+fill(682,414,140,166,'#4c4d42');fill(693,424,117,145,'#252f2f');for(let j=0;j<3;j++){fill(697,448+j*42,109,7,'#76715f');for(let k=0;k<5;k++)fill(702+k*20,425+j*42,13,21,k%2?'#73715d':'#5d6659')}
+// Shelter exit, practical signage and warm lantern.
+fill(940,391,147,206,'#172326');fill(953,400,123,196,'#303e3c');fill(968,419,89,174,'#172124');fill(1052,493,7,20,'#ba9d6b');fill(952,375,125,23,'#c2a678');ctx.fillStyle='#202d2d';ctx.font='bold 13px sans-serif';ctx.fillText('EXIT / 外出',972,391);
+grad(1030,419,135,'#dfba7e36','#dfba7e00');
+// Pooled lights, shadows and foreground rubble.
+for(let x of [300,710,1020])grad(x,540,200,'#c3a77a15','#c3a77a00');for(let j=0;j<35;j++){let x=90+r(j*14)*1090;fill(x,592-r(j*9)*9,7+r(j+2)*25,2+r(j*2)*5,'#1c2424aa')}
+
+}
+function drawShelter(){
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.save();
+ const sc=h/HEIGHT,visibleWidth=HEIGHT*w/h;
+ const cameraPan=Math.max(0,Math.min(1280-visibleWidth,shelterX-visibleWidth*.4));
+ const centerOffset=Math.max(0,(w-1280*sc)/2);
+ ctx.translate(centerOffset-cameraPan*sc,0);ctx.scale(sc,sc);
+ if(!window.EmberScene?.paintShelter?.(ctx,1280,720))paintShelterFallback();
+ // Time-of-day tint leaves the local warm practical lights readable.
+ fill(0,0,1280,720,`rgba(8,18,25,${Math.max(0,(dayMinutes-720)/360)*.14})`);
+ char(shelterX,GROUND,false);
+ ctx.font='11px -apple-system,BlinkMacSystemFont,sans-serif';ctx.textAlign='center';
+ for(const [x,label] of [[270,'储物柜'],[500,workbenchBuilt?'工作台 · 已修复':'工作台'],[1010,'外出地图']]){
+  const near=Math.abs(shelterX-x)<115;ctx.fillStyle=near?'#ead9b6':'#babaa47a';ctx.fillText(near?'◇ '+label+' / F':label,x,634);
+ }
+ ctx.restore();
+}
+const loadStatus=document.querySelector('#loadStatus'),loadBar=document.querySelector('#loadingProgress'),loadFill=document.querySelector('#loadingProgressFill'),loadPercent=document.querySelector('#loadingPercent');
+function setLoadProgress(percent,message){
+ const value=Math.max(0,Math.min(100,Math.round(percent)));
+ loadStatus.textContent=message;loadBar?.setAttribute('aria-valuenow',String(value));if(loadFill)loadFill.style.width=value+'%';if(loadPercent)loadPercent.textContent=value+'%';
+}
+function showError(err){window.__gameReady=false;paused=true;overlay.hidden=false;startBtn.disabled=true;startBtn.textContent='初始化失败，请刷新';setLoadProgress(0,'游戏错误：'+(err?.message||err));console.error(err);}
+function markReady(message='场景、角色与物资已就绪'){
+ window.__gameReady=true;lifecycle.setState('Ready');setLoadProgress(100,message);startBtn.disabled=false;startBtn.textContent='进入避难所';
+}
+const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+async function initializeGame(){
+ lifecycle.setState('Loading');window.__gameReady=false;startBtn.disabled=true;
+ try{
+  setLoadProgress(5,'正在检查浏览器渲染支持…');await nextPaint();
+  if(!ctx||!ec)throw new Error('浏览器不支持 Canvas 2D');
+  setLoadProgress(20,'正在配置画面尺寸…');await nextPaint();resize();
+  setLoadProgress(30,'正在生成角色、敌人和物资…');await nextPaint();reset();
+  let sceneProgress=0,characterProgress=0;
+  const report=()=>setLoadProgress(35+45*(sceneProgress*.7+characterProgress*.3),'正在加载场景与人物材质…');
+  setLoadProgress(35,'正在加载场景与人物材质…');await nextPaint();
+  const [artReady,charactersReady]=await Promise.all([
+   window.EmberScene?.load((done,total)=>{sceneProgress=total?done/total:1;report();}),
+   window.EmberCharacters?.load?.(fraction=>{characterProgress=fraction;report();})
+  ]);
+  setLoadProgress(85,'正在缓存建筑和环境资源…');await nextPaint();cacheEnv();
+  setLoadProgress(95,'正在渲染避难所首帧…');await nextPaint();showShelter();draw();
+  markReady(artReady&&charactersReady?'场景、角色与物资已就绪':'部分材质不可用，已启用基础画面回退');
+ }catch(err){lifecycle.setState('Error');showError(err);}
+}
+initializeGame();
 })();

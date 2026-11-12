@@ -4,10 +4,12 @@
 window.EmberScene = (() => {
   const assets = [
     {src:'assets/art/scene-west.webp',x:0,width:1770,heightScale:1.07},
-    {src:'assets/art/scene-east.webp',x:1770,width:1770,heightScale:1.14}
+    {src:'assets/art/scene-east.webp',x:1770,width:1770,heightScale:1.14},
+    {src:'assets/art/scene-shelter.webp',shelter:true}
   ];
   let ready=false;
   let loaded=[];
+  let shelterSurface=null;
   const load = async (progress) => {
     let complete=0;
     loaded=await Promise.all(assets.map(asset=>new Promise(resolve=>{
@@ -19,14 +21,22 @@ window.EmberScene = (() => {
       image.onerror=()=>finish(null);
       image.src=asset.src;
     })));
-    ready=loaded.every(Boolean);
+    ready=Boolean(loaded[0]&&loaded[1]);
+    if(loaded[2]){
+      shelterSurface=document.createElement('canvas');shelterSurface.width=1280;shelterSurface.height=720;
+      const c=shelterSurface.getContext('2d');
+      c.fillStyle='#050706';c.fillRect(0,0,1280,720);
+      c.drawImage(loaded[2].image,0,0,1280,696);
+      let shade=c.createLinearGradient(0,575,0,720);shade.addColorStop(0,'#06090800');shade.addColorStop(1,'#020403cc');
+      c.fillStyle=shade;c.fillRect(0,575,1280,145);
+    }
     return ready;
   };
   function paint(ctx,width,height,ground){
     if(!ready)return false;
     ctx.save();
     ctx.fillStyle='#111514';ctx.fillRect(0,0,width,height);
-    for(const asset of loaded)ctx.drawImage(asset.image,asset.x,0,asset.width,height*asset.heightScale);
+    for(const asset of loaded.slice(0,2))ctx.drawImage(asset.image,asset.x,0,asset.width,height*asset.heightScale);
     // A structural column conceals the junction, without blocking the walk lane.
     let joint=ctx.createLinearGradient(1728,0,1812,0);
     joint.addColorStop(0,'#080b0a00');joint.addColorStop(.4,'#080b0a99');joint.addColorStop(.53,'#090b0bcc');joint.addColorStop(1,'#080b0a00');
@@ -49,5 +59,9 @@ window.EmberScene = (() => {
     }
     ctx.restore();
   }
-  return {load,paint,foreground,get ready(){return ready}};
+  function paintShelter(ctx,width,height){
+    if(!shelterSurface)return false;
+    ctx.drawImage(shelterSurface,0,0,width,height);return true;
+  }
+  return {load,paint,paintShelter,foreground,get ready(){return ready},get shelterReady(){return Boolean(shelterSurface)}};
 })();
